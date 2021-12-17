@@ -16,34 +16,57 @@ import {
   tieneRol
 } from "./seguridad.js";
 import {
-  checksRoles, guardaUsuario, selectAlumnos
+  checksRoles,
+  guardaUsuario,
+  selectAlumnos
 } from "./usuarios.js";
 
-const params = new URL(location.href).searchParams;
+const params =
+  new URL(location.href).
+    searchParams;
 const id = params.get("id");
-const daoUsuario = getFirestore().collection("Usuario");
+const daoUsuario = getFirestore().
+  collection("Usuario");
+/** @type {HTMLFormElement} */
 const forma = document["forma"];
-const img = document.querySelector("img");
-const listaRoles = document.querySelector("#listaRoles");
-getAuth().onAuthStateChanged(protege, muestraError);
+const img = document.
+  querySelector("img");
+/** @type {HTMLUListElement} */
+const listaRoles = document.
+  querySelector("#listaRoles");
+getAuth().onAuthStateChanged(
+  protege, muestraError);
 
-async function protege(usuario){
-  if (tieneRol(usuario,["Administrador"])) {
+/** @param {import(
+    "../lib/tiposFire.js").User}
+    usuario */
+async function protege(usuario) {
+  if (tieneRol(usuario,
+    ["Administrador"])) {
     busca();
   }
 }
 
-async function busca(){
+async function busca() {
   try {
-    const doc = await daoUsuario.doc(id).get();
+    const doc = await daoUsuario.
+      doc(id).
+      get();
     if (doc.exists) {
       const data = doc.data();
       forma.cue.value = id || "";
-      img.src = await urlStorage(id);
-      selectAlumnos(forma.alumnoId, data.alummnoId);
-      checksRoles(listaRoles, data.rolIds);
-      forma.addEventListener("submit", guarda);
-      forma.eliminar.addEventListener("click", elimina);
+      img.src =
+        await urlStorage(id);
+      selectAlumnos(
+        forma.alumnoId,
+        data.alummnoId)
+      checksRoles(
+        listaRoles, data.rolIds);
+      forma.addEventListener(
+        "submit", guarda);
+      forma.eliminar.
+        addEventListener(
+          "click", elimina);
     }
   } catch (e) {
     muestraError(e);
@@ -51,14 +74,18 @@ async function busca(){
   }
 }
 
-async function guarda(evt){
-  await guardaUsuario(evt, new FormData(forma), id);
+/** @param {Event} evt */
+async function guarda(evt) {
+  await guardaUsuario(evt,
+    new FormData(forma), id);
 }
 
-async function elimina(){
+async function elimina() {
   try {
-    if (confirm("Confirmar la " + "eliminación")) {
-      await daoUsuario.doc(id).delete();
+    if (confirm("Confirmar la " +
+      "eliminación")) {
+      await daoUsuario.
+        doc(id).delete();
       await eliminaStorage(id);
       muestraUsuarios();
     }
