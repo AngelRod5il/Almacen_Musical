@@ -1,3 +1,4 @@
+/* global Promise */
 import{
   getAuth, getFirestore
 } from "../lib/fabrica.js";
@@ -12,25 +13,35 @@ import {
 } from "../lib/storage.js";
 
 const lista = document.querySelector("#lista");
+const firestore = getFirestore();
 const daoArticulo = getFirestore().collection("Articulo");
 
 getAuth().onAuthStateChanged(protege, muestraError);
 
 async function protege(usuario){
-  if (tieneRol(usuario, ["Administrador"])){
+  if (tieneRol(usuario, ["Cliente"])){
     consulta();
   }
 }
 
 function consulta(){
-  daoArticulo.orderBy("nombre").onSnapshot(htmlLista, errConsulta);
+  daoArticulo.onSnapshot(htmlLista, errConsulta);
 }
-
-function htmlLista(snap){
+/**
+ * @param {import(
+    "../lib/tiposFire.js").
+    QuerySnapshot} snap */
+async function htmlLista(snap){
   let html = "";
   if (snap.size > 0){
-    snap.forEach(doc => html += htmlFila(doc));
-  }else{
+      /** @type {
+          Promise<string>[]} */
+  let articulos = [];
+  snap.forEach(doc => articulos.push(htmlFila(doc)));
+  const htmlFilas = 
+    await Promise.all(articulos);
+  html += htmlFilas.join("");
+}else{
     html += 
       `<li class="vacio">
         -- No hay artículos en existencia. --
@@ -41,42 +52,47 @@ function htmlLista(snap){
 
 async function htmlFila(doc) {
   const data = doc.data();
-  const nombre = cod(data.nombre);
-  var ing = cod(data.ingreso);
-  const estado = cod(data.estado);
-  const inventario = cod(data.inventario);
-  const encargado = cod(data.encargado);
-  var mant = cod(data.mantenimiento);
-  const vista = cod(await urlStorage(doc.inventario));
-  var ingreso  = new Date(ing);
-  var mantenimiento = new Date(mant);
-  var formatoingreso = [ingreso.getDate()+1,ingreso.getMonth()+1, ingreso.getFullYear()].join('/');
-  var formatomantenimiento = [mantenimiento.getDate()+1,mantenimiento.getMonth()+1, mantenimiento.getFullYear()].join('/');
-  var fsf= cod(data.fecha);
-  var fecha = new Date(fsf);
+  const img = cod(await urlStorage(doc.inv));
+  const articulo = await buscaArticulo(data.inv);
   const parámetros = new URLSearchParams();
-  parámetros.append("inventario", doc.inventario);
-  return( 
+  parámetros.append("inventario", doc.inv);
+  return (/* html */
     `<li>
       <a class="fila conImagen"
-          href= "articulo.html?${parámetros}">
+          href=
+    "articulo.html?${parámetros}">
         <span class="marco">
-          <img src="${vista}" alt="No hay una imagen disponible">
+          <img src="${img}"
+            alt="Falta el Avatar">
         </span>
         <span class="texto">
-          <strong class="primario">
-            ${cod(doc.nombre)}
+          <strong
+              class="primario">
+            ${cod(doc.inv)}
           </strong>
           <span class="secundario">
-            ${formatoingreso}<br>
-            ${estado}<br>
-            ${inventario}<br>
-            ${encargado}<br>
-            ${formatomantenimiento}<br>
+            ${articulo}
           </span>
         </span>
       </a>
     </li>`);
+}
+async function buscaArticulo(inv){
+    if(inv){
+        const doc = await daoArticulo.doc(inv).get();
+        if(doc.exists){
+            const data = doc.data();
+            return(
+            `${cod(data.nombre)}<br>
+             ${cod(data.ingreso)}<br>
+             ${cod(data.estado)}<br>
+             ${cod(data.encargado)}<br>
+             ${cod(data.mantenimiento)}<br>
+             `
+        );
+        }
+    }
+    return " ";
 }
 
 function errConsulta(e) {
